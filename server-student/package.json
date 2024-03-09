@@ -1,0 +1,13 @@
+{
+	"name": "game service server",
+	"version": "0.1.0",
+	"description": "simple real-time server app built with NodeJS, Express and SocketIO",
+	"dependencies": {
+		"express": "^4.10.2",
+		"mongoose": "^8.2.0",
+		"socket.io": "^4.7.4"
+	},
+	"scripts": {
+		"start": "node app.js"
+	}
+}
