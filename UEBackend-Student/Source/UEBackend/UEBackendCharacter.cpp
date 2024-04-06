@@ -13,6 +13,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "ChatWidget.h"
 #include "ServerConnect.h"
+#include "Kismet/GameplayStatics.h"
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -27,7 +28,7 @@ AUEBackendCharacter::AUEBackendCharacter()
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
-
+	
 	// Configure character movement
 	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f); // ...at this rotation rate
@@ -80,6 +81,12 @@ void AUEBackendCharacter::BeginPlay()
 			ChatWidgetInstance->AddToViewport();
 	}
 
+
+	AServerConnect* SC = Cast<AServerConnect>(UGameplayStatics::GetActorOfClass(GetWorld(), AServerConnect::StaticClass()));
+
+	//SC->SendStats(PlayerStats);
+	SC->SendGetStats();
+	OnTakeAnyDamage.AddDynamic(this, &ThisClass::OnTakeDamage);
 }
 
 void AUEBackendCharacter::AddAbility(FString Name, FString IconPath)
@@ -98,6 +105,14 @@ void AUEBackendCharacter::AddAbility(FString Name, FString IconPath)
 	PlayerData.Abilities.Add(Ability);
 
 	GetGameInstance<UBEGameInstance>()->ServerCommunicator->SendAbility(PlayerData.PlayerName, Name, IconPath);
+}
+
+void AUEBackendCharacter::OnTakeDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
+	AController* InstigatedBy, AActor* DamageCauser)
+{
+	AServerConnect* SC = Cast<AServerConnect>(UGameplayStatics::GetActorOfClass(GetWorld(), AServerConnect::StaticClass()));
+	PlayerStats.Health -= 2;
+	SC->SendStats(PlayerStats);
 }
 
 //////////////////////////////////////////////////////////////////////////

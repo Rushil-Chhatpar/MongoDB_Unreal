@@ -32,6 +32,10 @@ void AServerConnect::BeginPlay()
 		{
 			ReceiveCheckPoint(Message);
 		});
+	SocketIOComponent->OnNativeEvent(TEXT("getStats"), [this](const FString& Event, const TSharedPtr<FJsonValue>& Message)
+		{
+			ReceiveStats(Message);
+		});
 
 	  // SendMessage(FString("Hello From Unreal"));
 
@@ -138,5 +142,41 @@ void AServerConnect::SendAbility(FString playerName, FString AbilityName, FStrin
 	JSONObject->SetStringField("iconPath", IconPath);
 	// Send the JSON data to addability event
 	SocketIOComponent->EmitNative("addability", JSONObject);
+}
+
+void AServerConnect::SendStats(FStatsStruct& PlayerStats)
+{
+	SocketIOComponent->EmitNative(TEXT("saveStats"), FStatsStruct::StaticStruct(), &PlayerStats);
+}
+
+void AServerConnect::SendGetStats()
+{
+	TSharedPtr<FJsonObject> JSONObject = MakeShareable(new FJsonObject);
+	JSONObject->SetStringField(TEXT("player"), PlayerName);
+	SocketIOComponent->EmitNative(TEXT("getStats"), JSONObject);
+}
+
+void AServerConnect::ReceiveStats(const TSharedPtr<FJsonValue>& Message)
+{
+	TSharedPtr<FJsonObject> JSONObject = Message->AsObject();
+	UE_LOG(LogTemp, Log, TEXT("Received a response: %s"), *USIOJConvert::ToJsonString(Message));
+	FStatsStruct RecvStruct;
+	USIOJConvert::JsonObjectToUStruct(JSONObject, FStatsStruct::StaticStruct(), &RecvStruct);
+	AUEBackendCharacter* Player = Cast<AUEBackendCharacter>(GetWorld()->GetFirstPlayerController()->GetPawn());
+	if (Player)
+	{
+		if (RecvStruct.playername.IsEmpty())
+		{
+			Player->PlayerStats.Rank = "King";
+			Player->PlayerStats.playername = FString(PlayerName);
+			Player->PlayerStats.PowerLevel = 2;
+			Player->PlayerStats.Health = 1000.99f;
+			SendStats(Player->PlayerStats);
+		}
+		else
+		{
+			Player->PlayerStats = RecvStruct;
+		}
+	}
 }
 

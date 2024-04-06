@@ -33,6 +33,15 @@ const checkpointSchema = new mongoose.Schema(
         isLastCheckpoint: Boolean
     }
 );
+    
+const playerStatsSchema = new mongoose.Schema(
+    {
+        health: Number,
+        powerLevel: Number,
+        rank: String,
+        playername: String
+    }
+);
 
 const gameProgressSchema = new mongoose.Schema(
     {
@@ -52,18 +61,20 @@ const playerAbilitySchema = new mongoose.Schema(
 const playerSchema = new mongoose.Schema(
     {
         player: String,
-        abilities: [playerAbilitySchema]
+        abilities: [playerAbilitySchema],
+        playerStats: playerStatsSchema
     }
-)
+);
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Game consists of gameProgressSchema
 const Game = mongoose.model('GameProgress', gameProgressSchema);
-const Ability = mongoose.model('Ability', playerSchema);
+const Player = mongoose.model('Player', playerSchema);
 
 function addAbility(player, abilityName, iconPath)
 {
-    return Ability.findOne({player, player}).then(progress =>
+    return Player.findOne({player, player}).then(progress =>
         {
             if(progress)
             {
@@ -81,7 +92,7 @@ function addAbility(player, abilityName, iconPath)
             }
             else
             {
-                const newProgress = new Ability(
+                const newProgress = new Player(
                     {
                         player: player,
                         abilities: [{name: abilityName, iconPath: iconPath, isEquipped: true}]
@@ -149,6 +160,52 @@ function getLastCheckpoint(playerName)
         });
 }
 
+async function updatePlayerStats(playerName, health, powerLevel, rank)
+{
+    try
+    {
+        const result = await Player.findOneAndUpdate
+        (
+            {player: playerName},
+            {
+                $set: {'playerStats.playername': playerName, 'playerStats.health': health, 'playerStats.powerLevel': powerLevel, 'playerStats.rank': rank}
+            },
+            {new: true, upsert: true} //options to create a modified document and create a new one if not found
+        );
+        
+        return result;
+    }
+    catch(error)
+    {
+        console.error('Error updating player stats: ', error);
+        // throw == assert
+        throw error;
+    }
+}
+
+async function getPlayerStats(playerName)
+{
+    try
+    {
+        //quesry to select only playerStats field and exclude the _id field
+        const player = await Player.findOne({player: playerName}, {'playerStats': 1, '_id': 0});
+        if(player)
+        {
+            // return player stats if found
+            return player.playerStats;
+        }
+        else
+        {
+            return null;
+        }
+    }
+    catch(error)
+    {
+        console.error('Error retreiving player stats: ', error);
+        throw error;
+    }
+}
+
 http.listen(port, function(){
     console.log('Listening on port ' + port);
 });
@@ -198,5 +255,18 @@ io.on('connection', function(socket)
             addAbility(data.playerName, data.abilityName, data.iconPath);
         });
         
+        socket.on('saveStats', async function(data)
+        {
+            console.log('STRUCT: PlayerName: ' + data.playername + ', Health: '+ data.health);
+            const result = await updatePlayerStats(data.playername, data.health, data.powerLevel, data.rank);
+        });
+
+        socket.on('getStats', async function(data)
+        {
+            // Retriec player stats
+            const sendData = await getPlayerStats(data.player);
+            // Emit the retreived stats to the requesting client
+            socket.emit('getStats', sendData);
+        });
     }
 );

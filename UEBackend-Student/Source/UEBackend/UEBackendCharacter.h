@@ -34,6 +34,24 @@ struct FPlayerData
 	TArray<FGameplayAbility> Abilities;
 };
 
+USTRUCT()
+struct FStatsStruct
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	int32 PowerLevel;
+
+	UPROPERTY()
+	float Health;
+
+	UPROPERTY()
+	FString Rank;
+
+	UPROPERTY()
+	FString playername;
+};
+
 
 UCLASS(config=Game)
 class AUEBackendCharacter : public ACharacter
@@ -100,6 +118,17 @@ public:
 	void AddAbility(FString Name, FString IconPath);
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
 	FPlayerData PlayerData = {};
+
+#pragma endregion
+
+
+#pragma region Player Stats
+public:
+	UPROPERTY()
+	FStatsStruct PlayerStats;
+
+	UFUNCTION()
+	void OnTakeDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
 
 #pragma endregion
 };

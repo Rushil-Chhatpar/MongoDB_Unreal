@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "UEBackendCharacter.h"
 #include "GameFramework/Actor.h"
 #include "Templates/SharedPointer.h"
 #include "ServerConnect.generated.h"
@@ -91,5 +92,14 @@ public:
 	void SendAbility(FString playerName, FString AbilityName, FString IconPath);
 
 #pragma endregion
+
+#pragma region Stats
+
+public:
+	void SendStats(FStatsStruct& PlayerStats);
+	void SendGetStats();
+	void ReceiveStats(const TSharedPtr< class FJsonValue>& Message);
+
+#pragma  endregion
 
 };
